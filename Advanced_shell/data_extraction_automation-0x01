@@ -1,6 +1,8 @@
 #!/bin/bash
-#Extract and format Pikachu's data from data.json
-
+## Extract and format Pikachu's data using jq, awk, and sed
 jq -r '"\(.name) \(.types[0].type.name) \(.weight) \(.height)"' data.json | \
-awk '{name=$1; type=$2; weight=$3/10; height=$4/10; printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, toupper(substr(type,1,1)) substr(type,2), weight, height}'
+sed 's/^/Name Type Weight Height: /' | \
+awk '{name=toupper(substr($2,1,1)) substr($2,2);
+ type=toupper(substr($3,1,1)) substr($3,2);
+ printf "%s is of type %s, weighs %dkg, and is %.1fm tall.\n", name, type, $4/10, $5/10}'
 
