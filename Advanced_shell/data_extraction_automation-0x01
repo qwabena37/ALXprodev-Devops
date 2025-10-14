@@ -1,8 +1,14 @@
 #!/bin/bash
-## Extract and format Pikachu's data using jq, awk, and sed
-jq -r '"\(.name) \(.types[0].type.name) \(.weight) \(.height)"' data.json | \
-sed 's/^/Name Type Weight Height: /' | \
-awk '{name=toupper(substr($2,1,1)) substr($2,2);
- type=toupper(substr($3,1,1)) substr($3,2);
- printf "%s is of type %s, weighs %dkg, and is %.1fm tall.\n", name, type, $4/10, $5/10}'
-
+## Extract and format Pikachu's data using jq, sed, and awk
+## Step 1: Extract name, type, weight, height using jq
+data=$(jq -r '"\(.name) \(.types[0].type.name) \(.weight) \(.height)"' data.json)
+## Step 2: Use sed to clean/format spacing (demonstrates sed usage)
+clean_data=$(echo "$data" | sed 's/  */ /g')
+## Step 3: Use awk to process fields and format the output string
+echo "$clean_data" | awk '{
+name=toupper(substr($1,1,1)) substr($1,2);
+type=toupper(substr($2,1,1)) substr($2,2);
+formatted_weight=$3/10;
+formatted_height=$4/10;
+printf("%s is of type %s, weighs %gkg, and is %gm tall.\n", name, type, formatted_weight, formatted_height);
+ }'
