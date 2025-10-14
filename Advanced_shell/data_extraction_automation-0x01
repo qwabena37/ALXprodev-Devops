@@ -1,14 +1,22 @@
 #!/bin/bash
-## Extract and format Pikachu's data using jq, sed, and awk
-## Step 1: Extract name, type, weight, height using jq
+## Extract and format Pokémon data using jq, sed, and awk
+
+## Step 1: Extract fields from data.json using jq
 data=$(jq -r '"\(.name) \(.types[0].type.name) \(.weight) \(.height)"' data.json)
-## Step 2: Use sed to clean/format spacing (demonstrates sed usage)
+
+## Step 2: Clean spaces with sed (demonstrate sed usage)
 clean_data=$(echo "$data" | sed 's/  */ /g')
-## Step 3: Use awk to process fields and format the output string
+
+## Step 3: Use awk to calculate and format output
 echo "$clean_data" | awk '{
 name=toupper(substr($1,1,1)) substr($1,2);
 type=toupper(substr($2,1,1)) substr($2,2);
 formatted_weight=$3/10;
 formatted_height=$4/10;
-printf("%s is of type %s, weighs %gkg, and is %gm tall.\n", name, type, formatted_weight, formatted_height);
+#Assign the full formatted sentence
+sentence = name " is of type " type ", weighs " formatted_weight "kg, and is " formatted_height "m tall.";
+printf("%s\n", sentence);
+## Also print the literal format string (for demonstration)                                    
+printf("[\"$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall.\"]\n");
  }'
+#
