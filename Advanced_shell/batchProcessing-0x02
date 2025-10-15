@@ -1,27 +1,37 @@
 #!/bin/bash
-# Script to fetch data for multiple Pokémon and save to separate JSON files
-
+## Script to fetch data for multiple Pokémon and save to separate JSON files
+## Includes retry logic and error handling
+#
 POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 API_URL="https://pokeapi.co/api/v2/pokemon"
 ERROR_FILE="errors.txt"
-
-# Clear previous errors
+MAX_RETRIES=3
+#
+## Clear previous error log
 > "$ERROR_FILE"
-
+#
 for pokemon in "${POKEMONS[@]}"; do
     OUTPUT_FILE="${pokemon}.json"
-    echo "Fetching data for $pokemon..."
-    
-    # Fetch Pokémon data
-    if curl -s -f "${API_URL}/${pokemon}" -o "$OUTPUT_FILE"; then
-        echo "✅ Saved $pokemon data to $OUTPUT_FILE"
-    else
-        echo "❌ Failed to fetch data for $pokemon" >> "$ERROR_FILE"
-    fi
-    
-  # Sleep to handle API rate limits
-    sleep 2
+        echo "Fetching data for $pokemon..."
+
+            success=false
+
+## Retry logic: try up to MAX_RETRIES times
+ for attempt in $(seq 1 $MAX_RETRIES); do
+ if curl -s -f "${API_URL}/${pokemon}" -o "$OUTPUT_FILE"; then
+    echo "✅ Saved $pokemon data to $OUTPUT_FILE"
+    success=true
+    break
+else
+                                                                                    echo "⚠️ Attempt $attempt failed for $pokemon."                                    sleep 2  # short delay before retry
+ fi
+done
+## Log error if all retries fail
+  if [ "$success" = false ]; then
+ echo "❌ Failed to fetch data for $pokemon after $MAX_RETRIES attempts." | tee -a "$ERROR_FILE" > /dev/null
+ fi
+## Delay between Pokémon requests to handle API rate limits
+ sleep 2
 done
 
-echo "All requests completed."
-
+ echo "All requests completed."
