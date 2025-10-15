@@ -1,45 +1,66 @@
 #!/bin/bash
-# Fetch Pokémon data in parallel using background processes
+## Fetch Pokémon data in parallel with full job control (jobs, wait, kill)
 
 POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 API_URL="https://pokeapi.co/api/v2/pokemon"
 ERROR_FILE="errors.txt"
-
-# Clear previous errors
+MAX_RETRIES=3
+TIMEOUT=15  # seconds before force-killing a stuck job
+## Clear old error log
 > "$ERROR_FILE"
-
-# Function to fetch a single Pokémon
+#
+## Function to fetch Pokémon data
 fetch_pokemon() {
-    pokemon=$1
-    output_file="${pokemon}.json"
-    max_retries=3
-    success=false
+local pokemon=$1
+local output_file="${pokemon}.json"
+  local success=false
+#
+for attempt in $(seq 1 $MAX_RETRIES); do
+if curl -s -f "${API_URL}/${pokemon}" -o "$output_file"; then
+echo "✅ [Job $$] Saved: $pokemon → $output_file"
+ success=true
+break
+else                                                                                echo "⚠️ [Job $$] Attempt $attempt failed for $pokemon"
+                                                                                        sleep 1
+fi                                                                           done
+       if [ "$success" = false ]; then
+echo "❌ [Job $$] Failed to fetch data for $pokemon after $MAX_RETRIES attempts" >> "$ERROR_FILE"
+                                                                                                                        fi
+                                                                                                                        }
 
-    for attempt in $(seq 1 $max_retries); do
-        if curl -s -f "${API_URL}/${pokemon}" -o "$output_file"; then
-            echo "✅ Saved $pokemon data to $output_file"
-            success=true
-            break
-        else
-            echo "⚠️ Attempt $attempt failed for $pokemon"
-            sleep 1
-        fi
-    done
+                                                                             echo "🚀 Starting Pokémon data fetch using parallel jobs..."
 
-    if [ "$success" = false ]; then
-        echo "❌ Failed to fetch data for $pokemon after $max_retries attempts" >> "$ERROR_FILE"
-    fi
-}
-
-echo "Starting parallel Pokémon data fetch..."
-
-# Run all downloads in parallel
-for pokemon in "${POKEMONS[@]}"; do
-    fetch_pokemon "$pokemon" &
+## Start background jobs
+                                                                             for pokemon in "${POKEMONS[@]}"; do                                                fetch_pokemon "$pokemon" &
+                 pid=$!
+echo "Started job for $pokemon (PID: $pid)"
 done
+## Show running job
+echo
+echo "🧠 Active background jobs:"
+jobs -l
 
-# Wait for all background processes to finish
-wait
+## Wait for jobs and handle timeouts
+start_time=$(date +%s)
+while true; do
+running_jobs=$(jobs -p)
+if [ -z "$running_jobs" ]; then
+echo "✅ All background jobs completed."
+   break 
+fi
+                                                                                                                                                                    current_time=$(date +%s)                                                                                                                             elapsed=$((current_time - start_time))
+                                                                                                                                                         # If any jobs exceed timeout, kill them
+if [ "$elapsed" -ge "$TIMEOUT" ]; then
+echo "⏱ Timeout reached! Killing remaining jobs..."
+for pid in $running_jobs; do
+echo "🛑 Killing stuck job with PID: $pid"
+kill "$pid" 2>/dev/null
+                                                                                                                                                          done                                                                                                                                                                                                                                        break
+                                                                                                                                                                                                                                            fi
 
-echo "✅ All parallel requests completed."
+                                                                                                                                                                                                                                                sleep 1
+                                                                                                                                                                                                                                                done
+                                                                                                                                                                                                                                                # Final cleanup 
+																														wait 2>/dev/null
 
+										echo                                                                                                                                                 echo "✅ Script finished. Check ${ERROR_FILE} for any failed requests."
